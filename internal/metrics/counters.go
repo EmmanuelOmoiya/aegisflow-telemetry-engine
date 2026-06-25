@@ -5,9 +5,9 @@ import (
 )
 
 type OperationalMetrics struct {
-	IngestedCount uint64
-	ProcessedCount	uint64
-	ViolationCount	uint64
+	IngestedCount  uint64
+	ProcessedCount uint64
+	ViolationCount uint64
 }
 
 var GlobalMetrics = &OperationalMetrics{}
@@ -26,8 +26,8 @@ func (m *OperationalMetrics) IncrementViolated() {
 
 func (m *OperationalMetrics) Snapshot() map[string]uint64 {
 	return map[string]uint64{
-		"ingested_events": atomic.LoadUint64(&m.IngestedCount),
-		"processed_events": atomic.LoadUint64(&m.ProcessedCount),
-		"policy_violations": atomic.LoadUint64(&m.ViolationCount)
+		"ingested_events":   atomic.LoadUint64(&m.IngestedCount),
+		"processed_events":  atomic.LoadUint64(&m.ProcessedCount),
+		"policy_violations": atomic.LoadUint64(&m.ViolationCount),
 	}
 }

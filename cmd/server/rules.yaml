@@ -1,0 +1,18 @@
+# AegisFlow In-Memory Policy Rules Definition
+
+policies:
+  - id: "rule-ai-block-01"
+    name: "Block sensitive Data Paste to Unapproved LLMs"
+    source: "browser_extension"
+    event_type: "network_request"
+    field: "tool"
+    value: "ChatGPT"
+    action: "FLAG_ALERT"
+
+  - id: "rule-robot-drift-02"
+    name: "Flag Robotic Arm Velocity Exceeded"
+    source: "robot_node"
+    event_type: "sensor_reading"
+    field: "status"
+    value: "OVER_SPEED"
+    action: "FLAG_ALERT"

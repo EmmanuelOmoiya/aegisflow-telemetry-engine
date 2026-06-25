@@ -1,0 +1,33 @@
+# AegisFlow Git Ignore Layout
+
+# Compiled Binaries
+bin/
+out/
+dist/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+aegisflow-server
+
+# Local Environment / Secrets
+.env
+.env.Local
+.env.production
+
+# Dependency Directories
+vendor/
+
+# IDE and Editor Configurations
+.idea/
+.vscode/
+*.suo
+*.ntvs
+*.njsproj
+*.sln
+*.sw?
+
+# OS Specific Files
+.DS_Store
+Thumbs.db

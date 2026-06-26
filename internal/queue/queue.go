@@ -36,3 +36,7 @@ func (q *MemoryQueue) Channel() <-chan ingestion.TelemetryEvent {
 func (q *MemoryQueue) Size() int {
 	return len(q.channel)
 }
+
+func (q *MemoryQueue) Close() {
+	close(q.channel)
+}

@@ -13,6 +13,7 @@ import (
 	"github.com/EmmanuelOmoiya/aegisflow-telemetry-engine/config"
 	"github.com/EmmanuelOmoiya/aegisflow-telemetry-engine/internal/ingestion"
 	"github.com/EmmanuelOmoiya/aegisflow-telemetry-engine/internal/metrics"
+	"github.com/EmmanuelOmoiya/aegisflow-telemetry-engine/internal/worker"
 	"github.com/EmmanuelOmoiya/aegisflow-telemetry-engine/internal/queue"
 )
 
@@ -24,8 +25,11 @@ func main() {
 	memQueue := queue.NewMemoryQueue(cfg.QueueBuffer)
 	log.Printf("[Queue] Bounded pipeline allocated with max capacity buffer: %d\n", cfg.QueueBuffer)
 
+	workerPool := worker.NewWorkerPool(cfg.WorkerCount, memQueue)
+	workerPool.StartPool()
+
 	ingestHandler := ingestion.NewIngestionHandler(memQueue)
-	metricsHandler := metrics.NewMetricsHandler()
+	metricsHandler := metrics.NewMetricsHandler(memQueue)
 
 	mux := http.NewServeMux()
 	mux.Handle("/v1/telemetry", ingestHandler)
@@ -58,6 +62,13 @@ func main() {
 	if err := server.Shutdown(ctx); err != nil {
 		log.Fatalf("[Shutdown] Force closing active instances: %v\n", err)
 	}
+
+	log.Println("[Shutdown] HTTP gateway offline. No longer accepting new telemetry traffic.")
+
+	log.Println("[Shutdown] Sealing telemetry memory channel queue stream...")
+	memQueue.Close()
+
+	workerPool.Stop()
 
 	log.Println("AegisFlow server connection pool closed down with zero leak footprint. Exit success.")
 }

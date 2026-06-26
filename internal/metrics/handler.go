@@ -5,10 +5,16 @@ import (
 	"net/http"
 )
 
-type MetricsHandler struct{}
+type QueueSizeReader interface {
+	Size() int
+}
 
-func NewMetricsHandler() *MetricsHandler {
-	return &MetricsHandler{}
+type MetricsHandler struct {
+	queue QueueSizeReader
+}
+
+func NewMetricsHandler(q QueueSizeReader) *MetricsHandler {
+	return &MetricsHandler{queue: q}
 }
 
 func (h *MetricsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -21,5 +27,5 @@ func (h *MetricsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(GlobalMetrics.Snapshot())
+	_ = json.NewEncoder(w).Encode(GlobalMetrics.Snapshot(h.queue.Size()))
 }

@@ -4,6 +4,7 @@ import (
 	"log"
 	"sync"
 	"github.com/EmmanuelOmoiya/aegisflow-telemetry-engine/internal/ingestion"
+	"github.com/EmmanuelOmoiya/aegisflow-telemetry-engine/internal/metrics"
 )
 
 type IngestionQueueReader interface {
@@ -38,7 +39,7 @@ func (w *Worker) Start() {
 			log.Printf("[Worker #%d] Processing trace - Device: %s, Source: %s, Event: %s\n", 
 				w.id, event.DeviceID, event.Source, event.EventType,
 			)
-			//////
+			metrics.GlobalMetrics.IncrementProcessed()
 		}
 
 		log.Printf("[Worker #%d] Ingestion channel closed. Cleaning up routing allocations and exiting safely.\n", w.id)

@@ -33,3 +33,14 @@ func (p *WorkerPool) StartPool() {
 
 	log.Printf("[WorkerPool] All %d background workers successfully online and routing.\n", p.workerCount)
 }
+
+
+func (p *WorkerPool) Stop() {
+	log.Println("[WorkerPool] Initiating graceful shutdown sequence...")
+	
+	log.Println("[WorkerPool] Waiting for active background workers to drain remaining channel memory...")
+	
+	p.waitGroup.Wait()
+
+	log.Printf("[WorkerPool] All background threads have exited cleanly. Concurrency footprint cleared.\n")
+}

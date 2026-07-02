@@ -1,12 +1,10 @@
 package evaluator
 
-
 import (
 	"fmt"
 	"math"
 	"strings"
 )
-
 
 type Node interface {
 	Evaluate(context map[string]interface{}) (interface{}, error)
@@ -147,7 +145,7 @@ func (n *ComparisonNode) Evaluate(context map[string]interface{}) (interface{}, 
 }
 
 func convertToFloat(v interface{}) (float64, bool) {
-	switch t := v.(v.(type)) {
+	switch t := v.(type) {
 	case float64:
 		return t, true
 	case float32:
@@ -160,5 +158,57 @@ func convertToFloat(v interface{}) (float64, bool) {
 		return float64(t), true
 	default:
 		return 0, false
+	}
+}
+
+type LogicalNode struct {
+	Left     Node
+	Operator string
+	Right    Node
+}
+
+func (n *LogicalNode) OpCode() string { return n.Operator }
+
+func (n *LogicalNode) Evaluate(context map[string]interface{}) (interface{}, error) {
+	leftVal, err := n.Left.Evaluate(context)
+	if err != nil {
+		return false, err
+	}
+
+	leftBool, ok := leftVal.(bool)
+	if !ok {
+		return false, fmt.Errorf("logical operator %s requires boolean operands, got: %v", n.Operator, leftVal)
+	}
+
+	// Apply short-circuit optimization patterns early
+	switch n.Operator {
+	case "AND":
+		if !leftBool {
+			return false, nil // Short-circuit: false AND anything is always false
+		}
+	case "OR":
+		if leftBool {
+			return true, nil // Short-circuit: true OR anything is always true
+		}
+	}
+
+	// Evaluate the right branch only if the short-circuit conditions above were not met
+	rightVal, err := n.Right.Evaluate(context)
+	if err != nil {
+		return false, err
+	}
+
+	rightBool, ok := rightVal.(bool)
+	if !ok {
+		return false, fmt.Errorf("logical operator %s requires boolean operands, got: %v", n.Operator, rightVal)
+	}
+
+	switch n.Operator {
+	case "AND":
+		return leftBool && rightBool, nil
+	case "OR":
+		return leftBool || rightBool, nil
+	default:
+		return false, fmt.Errorf("unsupported logical condition operator: %s", n.Operator)
 	}
 }

@@ -3,6 +3,8 @@ package worker
 import (
 	"log"
 	"sync"
+	"github.com/EmmanuelOmoiya/aegisflow-telemetry-engine/internal/evaluator"
+	"github.com/EmmanuelOmoiya/aegisflow-telemetry-engine/internal/queue"
 	"github.com/EmmanuelOmoiya/aegisflow-telemetry-engine/internal/ingestion"
 	"github.com/EmmanuelOmoiya/aegisflow-telemetry-engine/internal/metrics"
 )
@@ -34,12 +36,33 @@ func (w *Worker) Start() {
 		defer w.waitGroup.Done()
 		
 		log.Printf("[Worker #%d] Execution pipeline spawned successfully. Awaiting telemetry logs...\n", w.id)
+
 		for event := range w.queue.Channel() {
-			// Phase 1 Placeholder: Log the incoming target package trace for local auditing
 			log.Printf("[Worker #%d] Processing trace - Device: %s, Source: %s, Event: %s\n", 
 				w.id, event.DeviceID, event.Source, event.EventType,
 			)
+
 			metrics.GlobalMetrics.IncrementProcessed()
+
+			evalContext := map[string]interface{}{
+				"device_id":  event.DeviceID,
+				"source":     event.Source,
+				"event_type": event.EventType,
+				"payload":    event.Payload, // Supports nested structural field resolution (e.g. payload.temperature)
+			}
+
+			if rule, exists := evaluator.GlobalRegistry.Lookup("critical_anomaly_rule"); exists {
+				result, err := rule.Evaluate(evalContext)
+				if err != nil {
+					log.Printf("[Worker #%d Error] Rule validation evaluation anomaly: %v\n", w.id, err)
+					continue
+				}
+
+				if isViolated, ok := result.(bool); ok && isViolated {
+					log.Printf("[ALERT] Policy violation detected on device %s via rule engine constraint analysis!\n", event.DeviceID)
+					metrics.GlobalMetrics.IncrementViolation()
+				}
+			}
 		}
 
 		log.Printf("[Worker #%d] Ingestion channel closed. Cleaning up routing allocations and exiting safely.\n", w.id)

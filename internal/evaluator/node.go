@@ -1,8 +1,12 @@
 package evaluator
 
+
 import (
+	"fmt"
+	"math"
 	"strings"
 )
+
 
 type Node interface {
 	Evaluate(context map[string]interface{}) (interface{}, error)
@@ -62,4 +66,99 @@ func (n *IdentifierNode) Evaluate(context map[string]interface{}) (interface{}, 
 	}
 
 	return current, nil
+}
+
+type ComparisonNode struct {
+	Left     Node
+	Operator string
+	Right    Node
+}
+
+func (n *ComparisonNode) OpCode() string { return n.Operator }
+
+func (n *ComparisonNode) Evaluate(context map[string]interface{}) (interface{}, error) {
+	leftVal, err := n.Left.Evaluate(context)
+	if err != nil {
+		return false, err
+	}
+	rightVal, err := n.Right.Evaluate(context)
+	if err != nil {
+		return false, err
+	}
+
+	// Handle nil comparisons gracefully (e.g., checking if a missing field is equal to something)
+	if leftVal == nil || rightVal == nil {
+		switch n.Operator {
+		case "==":
+			return leftVal == rightVal, nil
+		case "!=":
+			return leftVal != rightVal, nil
+		default:
+			return false, nil // Relational operators like >, < return false against nil values
+		}
+	}
+
+	// Normalize numeric types to float64 to enable clean, direct comparisons
+	leftNum, isLeftNum := convertToFloat(leftVal)
+	rightNum, isRightNum := convertToFloat(rightVal)
+
+	if isLeftNum && isRightNum {
+		switch n.Operator {
+		case "==":
+			return math.Abs(leftNum-rightNum) < 1e-9, nil
+		case "!=":
+			return math.Abs(leftNum-rightNum) >= 1e-9, nil
+		case ">":
+			return leftNum > rightNum, nil
+		case "<":
+			return leftNum < rightNum, nil
+		case ">=":
+			return leftNum >= rightNum, nil
+		case "<=":
+			return leftNum <= rightNum, nil
+		default:
+			return false, fmt.Errorf("unsupported numerical evaluation operator: %s", n.Operator)
+		}
+	}
+
+	// Handle string comparison fallback blocks
+	leftStr, isLeftStr := leftVal.(string)
+	rightStr, isRightStr := rightVal.(string)
+
+	if isLeftStr && isRightStr {
+		switch n.Operator {
+		case "==":
+			return leftStr == rightStr, nil
+		case "!=":
+			return leftStr != rightStr, nil
+		default:
+			return false, fmt.Errorf("unsupported alphanumeric evaluation operator: %s", n.Operator)
+		}
+	}
+
+	// Fallback equality check for matching boolean primitives safely
+	if n.Operator == "==" {
+		return leftVal == rightVal, nil
+	} else if n.Operator == "!=" {
+		return leftVal != rightVal, nil
+	}
+
+	return false, fmt.Errorf("type mismatch: cannot evaluate comparison %v %s %v", leftVal, n.Operator, rightVal)
+}
+
+func convertToFloat(v interface{}) (float64, bool) {
+	switch t := v.(v.(type)) {
+	case float64:
+		return t, true
+	case float32:
+		return float64(t), true
+	case int:
+		return float64(t), true
+	case int64:
+		return float64(t), true
+	case int32:
+		return float64(t), true
+	default:
+		return 0, false
+	}
 }
